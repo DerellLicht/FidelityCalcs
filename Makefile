@@ -27,7 +27,7 @@ endif
 
 LIBS=-lshlwapi
 
-CPPSRC=FidelityCalcs.cpp common.cpp qualify.cpp
+CPPSRC=FidelityCalcs.cpp parse_report.cpp common.cpp qualify.cpp
 
 OBJS = $(CSRC:.c=.o) $(CPPSRC:.cpp=.o)
 

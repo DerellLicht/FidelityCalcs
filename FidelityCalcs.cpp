@@ -209,10 +209,9 @@ int main(int argc, char **argv)
    if (filecount > 0) {
       puts("");
       for (ffdata *ftemp = ftop; ftemp != NULL; ftemp = ftemp->next) {
-         printf("%s\n", ftemp->path_spec);
+         parse_fidelity_report(ftemp);
       }
    }
    
    return 0;
 }
-

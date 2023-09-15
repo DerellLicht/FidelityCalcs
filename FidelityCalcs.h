@@ -18,3 +18,5 @@ struct ffdata {
    struct ffdata  *next ;
 } ;
 
+//  parse_report.cpp
+int parse_fidelity_report(ffdata *ftemp);
