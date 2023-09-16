@@ -412,9 +412,10 @@ void dump_account_lists(void)
    acct_id_p acct_id_temp ;
    fund_info_p fi_temp ;
    fund_entry_p fe_temp ;
-   // printf("\nAccount %s [%s]\n", acct_id_temp->acct_num, acct_id_temp->fund_name);
-   // printf("%s: %02u %04u %9.2f\n", fi_temp->cusip, 
-   //    fe_temp->month, fe_temp->year, fe_temp->end_value);
+   fund_entry_p fe_prev ;
+   printf("month/             percent  percent\n");
+   printf("year     value     of prev  change \n");
+   printf("======= =========  =======  =======\n");
    
    for (acct_id_temp = acct_id_top; acct_id_temp != NULL; acct_id_temp = acct_id_temp->next) {
       printf("\nAccount %s [%s]\n", acct_id_temp->acct_num, acct_id_temp->fund_name);
@@ -423,8 +424,18 @@ void dump_account_lists(void)
            fi_temp = fi_temp->next) {
          printf("   fund %s [%s]\n", fi_temp->cusip, fi_temp->desc) ;
          
+         fe_prev = NULL ;
          for (fe_temp = fi_temp->fe_top; fe_temp != NULL; fe_temp = fe_temp->next) {
-            printf("%02u/%04u %9.2f\n", fe_temp->month, fe_temp->year, fe_temp->end_value);
+            if (fe_prev == NULL) {
+               printf("%02u/%04u %9.2f\n", fe_temp->month, fe_temp->year, fe_temp->end_value);
+            }
+            else {
+               double value_chg_pct = (fe_temp->end_value / fe_prev->end_value) * 100.0 ;
+               double value_diff_pct = ((fe_temp->end_value - fe_prev->end_value) / fe_temp->end_value) * 100.0 ;
+               printf("%02u/%04u %9.2f  %.2f    %.2f\n", 
+                  fe_temp->month, fe_temp->year, fe_temp->end_value, value_chg_pct, value_diff_pct);
+            }
+            fe_prev = fe_temp ;
          }
       }
       
