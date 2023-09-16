@@ -92,7 +92,7 @@ static void parse_month_year(acct_id_p acct_id_temp, char const * const fname)
       monstr[1] = dtstr[1];
       monstr[2] = 0 ;
       acct_id_temp->month = (uint) atoi(monstr);
-      acct_id_temp->year  = (uint) atoi(&dtstr[3]);
+      acct_id_temp->year  = (uint) atoi(&dtstr[4]);
       break ;
       
    default:

@@ -1,7 +1,10 @@
 # FidelityCalcs
 
-Read Fidelity Investments report documents and perform various calculations
+Read Fidelity Investments report documents and perform various calculations.
+This will extract value of each fund at various times, and
+analyze changes in value of my holdings in the funds.
 
+//**********************************************************************
 This project is licenced under Creative Commons CC0 1.0 Universal;  
 https://creativecommons.org/publicdomain/zero/1.0/
 
