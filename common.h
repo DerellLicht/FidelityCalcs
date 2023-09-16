@@ -53,3 +53,4 @@ int hex_dump(u8 *bfr, int bytes);
 #define  MAX_ULL_COMMA_LEN  26
 char *convert_to_commas(ULONGLONG uli, char *outstr);
 
+void strip_newlines(char *rstr);

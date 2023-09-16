@@ -209,7 +209,7 @@ int main(int argc, char **argv)
    if (filecount > 0) {
       puts("");
       for (ffdata *ftemp = ftop; ftemp != NULL; ftemp = ftemp->next) {
-         parse_fidelity_report(ftemp);
+         parse_fidelity_report(ftemp); //lint !e534
       }
    }
    

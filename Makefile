@@ -68,5 +68,6 @@ $(BIN): $(OBJS)
 # DO NOT DELETE
 
 FidelityCalcs.o: common.h FidelityCalcs.h qualify.h
+parse_report.o: common.h FidelityCalcs.h
 common.o: common.h
 qualify.o: qualify.h

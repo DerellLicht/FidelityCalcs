@@ -22,6 +22,25 @@ char base_path[PATH_MAX] ;
 unsigned base_len ;  //  length of base_path
 
 //**********************************************************************
+//lint -esym(714, strip_newlines)
+//lint -esym(759, strip_newlines)
+//lint -esym(765, strip_newlines)
+void strip_newlines(char *rstr)
+{
+   int slen = (int) strlen(rstr) ;
+   while (1) {
+      if (slen == 0)
+         break;
+      if (*(rstr+slen-1) == '\n'  ||  *(rstr+slen-1) == '\r') {
+         slen-- ;
+         *(rstr+slen) = 0 ;
+      } else {
+         break;
+      }
+   }
+}
+
+//**********************************************************************
 //  Modify this to build entire string and print once.
 //  This command has several forms:
 //
