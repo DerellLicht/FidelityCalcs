@@ -21,6 +21,28 @@
 char base_path[PATH_MAX] ;
 unsigned base_len ;  //  length of base_path
 
+//**********************************************************************************
+//  copy chars from src to dest until comma or 0 are encountered
+//**********************************************************************************
+char *strccpy(char *src, char *dest, unsigned max_len)
+{
+   if (src == NULL  ||  dest == NULL) {
+      return NULL ;
+   }
+   unsigned slen = 0 ;
+   while (LOOP_FOREVER) {
+      if (*src == ','  ||  *src == 0  ||  slen >= max_len) {
+         *dest = 0 ;
+         if (*src == ',') {
+            src++ ;  //  skip terminating character
+         }
+         
+         return (slen >= max_len) ? NULL : src ;
+      }
+      *dest++ = *src++ ;
+   }
+}
+
 //**********************************************************************
 //lint -esym(714, strip_newlines)
 //lint -esym(759, strip_newlines)

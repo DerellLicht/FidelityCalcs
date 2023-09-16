@@ -207,11 +207,11 @@ int main(int argc, char **argv)
    }
    // printf("%u documents found\n", filecount);
    if (filecount > 0) {
-      puts("");
       for (ffdata *ftemp = ftop; ftemp != NULL; ftemp = ftemp->next) {
          parse_fidelity_report(ftemp); //lint !e534
       }
+      
+      dump_account_lists();
    }
-   
    return 0;
 }

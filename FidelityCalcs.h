@@ -20,3 +20,4 @@ struct ffdata {
 
 //  parse_report.cpp
 int parse_fidelity_report(ffdata *ftemp);
+void dump_account_lists(void);

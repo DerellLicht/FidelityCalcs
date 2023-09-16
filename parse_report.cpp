@@ -18,15 +18,36 @@
 
 static char inpstr[512];
 
+typedef struct fund_entry_s {
+   struct fund_entry_s *next ;
+   uint month ;
+   uint year ;
+   double end_value ;
+} fund_entry_t, *fund_entry_p ;
+
+#define  LEN_CUSIP   5
+#define  LEN_DESC    60
+
+typedef struct fund_info_s {
+   struct fund_info_s *next ;
+   char cusip[LEN_CUSIP+1] ;
+   char desc[LEN_DESC+1] ;
+   fund_entry_p fe_top ;
+   fund_entry_p fe_tail ;
+} fund_info_t, *fund_info_p ;
+
 //Trust: Under Agreement
 #define  MAX_FUND_LEN      30
 #define  MAX_ACCT_NUM_LEN  9
+
 typedef struct acct_id_s {
-struct acct_id_s *next ;
-char fund_name[MAX_FUND_LEN+1];
-char acct_num[MAX_ACCT_NUM_LEN+1];
-uint month ;
-uint year ;
+   struct acct_id_s *next ;
+   char fund_name[MAX_FUND_LEN+1];
+   char acct_num[MAX_ACCT_NUM_LEN+1];
+   uint month ;
+   uint year ;
+   fund_info_p fi_top ;
+   fund_info_p fi_tail ;
 } acct_id_t, *acct_id_p ;
 
 acct_id_p acct_id_top = NULL ;
@@ -106,11 +127,7 @@ static acct_id_p add_account(char const * const fund_name, char const * const ac
    
    parse_month_year(acct_id_temp, fname);
    
-   printf("\nAccount %s m%u y%u [%s]\n", 
-      acct_id_temp->acct_num,
-      acct_id_temp->month,
-      acct_id_temp->year,
-      acct_id_temp->fund_name);
+   // printf("\nAccount %s [%s]\n", acct_id_temp->acct_num, acct_id_temp->fund_name);
    
    if (acct_id_top == NULL) {
       acct_id_top = acct_id_temp ;
@@ -123,25 +140,69 @@ static acct_id_p add_account(char const * const fund_name, char const * const ac
 }
 
 //**********************************************************************************
-//  copy chars from src to dest until comma or 0 are encountered
-//**********************************************************************************
-char *strccpy(char *src, char *dest, unsigned max_len)
+static void add_fund_entry(fund_info_p fi_temp, acct_id_p acct_id_temp, char const * const end_value)
 {
-   if (src == NULL  ||  dest == NULL) {
-      return NULL ;
+   fund_entry_p fe_temp ;
+   fe_temp = new fund_entry_t ;
+   ZeroMemory((char *) fe_temp, sizeof(fund_entry_t));
+   fe_temp->month = acct_id_temp->month ;
+   fe_temp->year  = acct_id_temp->year ;
+   fe_temp->end_value = strtod(end_value, NULL);   //lint !e119
+   
+   // printf("%s: %02u %04u %9.2f\n", fi_temp->cusip, 
+   //    fe_temp->month, fe_temp->year, fe_temp->end_value);
+
+   //  add new fund entry to list   
+   if (fi_temp->fe_top == NULL) {
+      fi_temp->fe_top = fe_temp ;
    }
-   unsigned slen = 0 ;
-   while (LOOP_FOREVER) {
-      if (*src == ','  ||  *src == 0  ||  slen >= max_len) {
-         *dest = 0 ;
-         if (*src == ',') {
-            src++ ;  //  skip terminating character
-         }
-         
-         return (slen >= max_len) ? NULL : src ;
+   else {
+      fi_temp->fe_tail->next = fe_temp ;
+   }
+   fi_temp->fe_tail = fe_temp ;
+}  //lint !e818
+
+//**********************************************************************************
+static void add_fund_info(acct_id_p acct_id_temp, 
+   char const * const cusip, char const * const desc, char const * const end_value)
+{
+//06 2023: cusip: [FSCRX], desc: [FIDELITY SMALL CAP DISCOVERY FUND ], end_value: [63709.60]
+   // printf("%02u %04u: ", acct_id_temp->month, acct_id_temp->year);
+   // printf("cusip: [%s], ", cusip);
+   // printf("desc: [%s], ", desc);
+   // printf("end_value: [%s]\n", end_value);
+   fund_info_p fi_temp ;
+   for ( fi_temp = acct_id_temp->fi_top;
+         fi_temp != NULL;
+         fi_temp = fi_temp->next) {
+        
+      //  see if we already have an entry for this cusip
+      if (strncmp(cusip, fi_temp->cusip, LEN_CUSIP) == 0) {
+         // printf("%s: found another entry: ", cusip);
+         break ;
       }
-      *dest++ = *src++ ;
    }
+   
+   //  if fund_info entry does not already exist, create and add it
+   if (fi_temp == NULL) {
+      // printf("%s: create first entry:  ", cusip);
+      fi_temp = new fund_info_t ;
+      ZeroMemory((char *) fi_temp, sizeof(fund_info_t));
+      strcpy(fi_temp->cusip, cusip);
+      strcpy(fi_temp->desc, desc);
+      
+      //  add fund_info entry
+      if (acct_id_temp->fi_top == NULL) {
+         acct_id_temp->fi_top = fi_temp ;
+      }
+      else {
+         acct_id_temp->fi_tail->next = fi_temp ;
+      }
+      acct_id_temp->fi_tail = fi_temp ;
+   }
+   
+   //  add fund_entry struct to fund_info list
+   add_fund_entry(fi_temp, acct_id_temp, end_value);
 }
 
 //**********************************************************************************
@@ -161,7 +222,7 @@ static void parse_fund_data(char *ldata, acct_id_p acct_id_temp)
    char *src = ldata ;
    char dest[20+1];
    char cusip[5+1] = "" ;
-   char desc[60+1] = "" ;
+   char desc[LEN_DESC+1] = "" ;
    char end_value[20+1] = "" ;
    
    if (acct_id_temp == NULL) {
@@ -175,16 +236,16 @@ static void parse_fund_data(char *ldata, acct_id_p acct_id_temp)
          src = strccpy(src, cusip, 6);
          break ;
       case 1:  //  description of fund
-         src = strccpy(src, desc, 60);
+         src = strccpy(src, desc, LEN_DESC);
          break ;
       case 2:  //  quantity (skip)
-         src = strccpy(src, dest, 60);
+         src = strccpy(src, dest, 20);
          break ;
       case 3:  //  price (skip)
-         src = strccpy(src, dest, 60);
+         src = strccpy(src, dest, 20);
          break ;
       case 4:  //  beginning value (skip)
-         src = strccpy(src, dest, 60);
+         src = strccpy(src, dest, 20);
          break ;
       case 5:  //  ending value
          src = strccpy(src, end_value, 20);
@@ -209,11 +270,7 @@ static void parse_fund_data(char *ldata, acct_id_p acct_id_temp)
    
    //  now, process results
    if (dvalid) {
-//06 2023: cusip: [FSCRX], desc: [FIDELITY SMALL CAP DISCOVERY FUND ], end_value: [63709.60]
-      printf("%02u %04u: ", acct_id_temp->month, acct_id_temp->year);
-      printf("cusip: [%s], ", cusip);
-      printf("desc: [%s], ", desc);
-      printf("end_value: [%s]\n", end_value);
+      add_fund_info(acct_id_temp, cusip, desc, end_value);
    }
 }  //lint !e818
 
@@ -347,4 +404,30 @@ int parse_fidelity_report(ffdata *ftemp)
 {
    process_text_file(ftemp->path_spec);   //lint !e534
    return 0;
+}
+
+//**********************************************************************************
+void dump_account_lists(void)
+{
+   acct_id_p acct_id_temp ;
+   fund_info_p fi_temp ;
+   fund_entry_p fe_temp ;
+   // printf("\nAccount %s [%s]\n", acct_id_temp->acct_num, acct_id_temp->fund_name);
+   // printf("%s: %02u %04u %9.2f\n", fi_temp->cusip, 
+   //    fe_temp->month, fe_temp->year, fe_temp->end_value);
+   
+   for (acct_id_temp = acct_id_top; acct_id_temp != NULL; acct_id_temp = acct_id_temp->next) {
+      printf("\nAccount %s [%s]\n", acct_id_temp->acct_num, acct_id_temp->fund_name);
+      for (fi_temp = acct_id_temp->fi_top;
+           fi_temp != NULL;
+           fi_temp = fi_temp->next) {
+         printf("   fund %s [%s]\n", fi_temp->cusip, fi_temp->desc) ;
+         
+         for (fe_temp = fi_temp->fe_top; fe_temp != NULL; fe_temp = fe_temp->next) {
+            printf("%02u/%04u %9.2f\n", fe_temp->month, fe_temp->year, fe_temp->end_value);
+         }
+      }
+      
+   }
+   
 }
