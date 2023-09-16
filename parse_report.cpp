@@ -82,7 +82,7 @@ static void parse_month_year(acct_id_p acct_id_temp, char const * const fname)
 }
 
 //**********************************************************************************
-static acct_id_p add_account(char *fund_name, char *account_num, char const * const fname)
+static acct_id_p add_account(char const * const fund_name, char const * const account_num, char const * const fname)
 {
    //  D:\SourceCode\Git\fidelity_calcs\reports\Fidelity 5706\Statement3312023.csv
    // printf("acct: %s, fund: %s\n", account_num, fund_name);
@@ -94,7 +94,7 @@ static acct_id_p add_account(char *fund_name, char *account_num, char const * co
       if (strcmp(acct_id_temp->acct_num, account_num) == 0) {
          //  return true if this item is already in list
          parse_month_year(acct_id_temp, fname);
-         printf("found %s [%s]\n", account_num, fund_name);
+         // printf("found %s [%s]\n", account_num, fund_name);
          return acct_id_temp ;
       }
    }
@@ -106,7 +106,7 @@ static acct_id_p add_account(char *fund_name, char *account_num, char const * co
    
    parse_month_year(acct_id_temp, fname);
    
-   printf("adding %s m%u y%u [%s]\n", 
+   printf("\nAccount %s m%u y%u [%s]\n", 
       acct_id_temp->acct_num,
       acct_id_temp->month,
       acct_id_temp->year,
@@ -245,7 +245,7 @@ static void parse_fund_data(char *ldata, acct_id_p acct_id_temp)
 static int process_text_file(char const * const fpath)
 {
    acct_id_p acct_id_temp = NULL ;
-   printf("\n%s\n", fpath);
+   // printf("\n%s\n", fpath);
    FILE *fptr = fopen(fpath, "rt");
    if (fptr == NULL) {
       printf("%3u: %s\n", (uint) errno, fpath);
@@ -323,7 +323,7 @@ static int process_text_file(char const * const fpath)
                pstate = 5 ;
                break ;
             }
-            printf("%s\n", inpstr);
+            // printf("%s\n", inpstr);
             parse_fund_data(inpstr, acct_id_temp);
             break ;
 
