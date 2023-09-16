@@ -3,4 +3,5 @@ _lint.tmp
 *.zip
 *.bak
 *.o
+output*.txt
 reports/

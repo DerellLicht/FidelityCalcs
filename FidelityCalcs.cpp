@@ -205,7 +205,7 @@ int main(int argc, char **argv)
    if (search_errors  ||  filecount == 0) {
       return 1 ;
    }
-   printf("%u documents found\n", filecount);
+   // printf("%u documents found\n", filecount);
    if (filecount > 0) {
       puts("");
       for (ffdata *ftemp = ftop; ftemp != NULL; ftemp = ftemp->next) {

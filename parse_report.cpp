@@ -33,15 +33,17 @@ acct_id_p acct_id_top = NULL ;
 acct_id_p acct_id_tail = NULL ;
 
 //**********************************************************************************
-static bool parse_month_year(acct_id_p acct_id_temp, char const * const fname)
+static void parse_month_year(acct_id_p acct_id_temp, char const * const fname)
 {
    char dtstr[20];
    char monstr[3];
    
    //  parse month/date from filename
-   char *stemp = strstr(fname, "Statement");
+   char *stemp = strstr(fname, "Statement"); //lint !e158  asmt to stemp increases capability
    if (stemp == NULL) {
-      return false ;
+      acct_id_temp->month = (uint) 0;
+      acct_id_temp->year  = (uint) 0;
+      return ;
    }
    stemp += 9 ;   //  point to date string
    strcpy(dtstr, stemp);
@@ -49,7 +51,9 @@ static bool parse_month_year(acct_id_p acct_id_temp, char const * const fname)
    //  truncate file extension, leaving just m[m]ddyyyy
    stemp = strchr(dtstr, '.');
    if (stemp == NULL) {
-      return false ;
+      acct_id_temp->month = (uint) 0;
+      acct_id_temp->year  = (uint) 0;
+      return ;
    }
    *stemp = 0 ;
    
@@ -71,10 +75,10 @@ static bool parse_month_year(acct_id_p acct_id_temp, char const * const fname)
       break ;
       
    default:
-      return false ;
+      acct_id_temp->month = (uint) 0;
+      acct_id_temp->year  = (uint) 0;
+      return ;
    }
-   
-   return true ;
 }
 
 //**********************************************************************************
@@ -89,6 +93,7 @@ static acct_id_p add_account(char *fund_name, char *account_num, char const * co
         acct_id_temp = acct_id_temp->next) {
       if (strcmp(acct_id_temp->acct_num, account_num) == 0) {
          //  return true if this item is already in list
+         parse_month_year(acct_id_temp, fname);
          printf("found %s [%s]\n", account_num, fund_name);
          return acct_id_temp ;
       }
@@ -118,10 +123,99 @@ static acct_id_p add_account(char *fund_name, char *account_num, char const * co
 }
 
 //**********************************************************************************
-static void parse_fund_data(char *ldata)
+//  copy chars from src to dest until comma or 0 are encountered
+//**********************************************************************************
+char *strccpy(char *src, char *dest, unsigned max_len)
 {
-
+   if (src == NULL  ||  dest == NULL) {
+      return NULL ;
+   }
+   unsigned slen = 0 ;
+   while (LOOP_FOREVER) {
+      if (*src == ','  ||  *src == 0  ||  slen >= max_len) {
+         *dest = 0 ;
+         if (*src == ',') {
+            src++ ;  //  skip terminating character
+         }
+         
+         return (slen >= max_len) ? NULL : src ;
+      }
+      *dest++ = *src++ ;
+   }
 }
+
+//**********************************************************************************
+// Symbol/CUSIP,Description,Quantity,Price,Beginning Value,Ending Value,Cost Basis
+// FNCMX,FIDELITY NASDAQ COMPOSITE INDEX ,78.74000,154.38000,10385.02,12155.88,7781.96
+// 0: [FNCMX]
+// 1: [FIDELITY NASDAQ COMPOSITE INDEX ]
+// 2: [78.74000]
+// 3: [154.38000]
+// 4: [10385.02]
+// 5: [12155.88]
+// 6: [7781.96]
+//FIDELITY SELECT MED TECHNOLOGY & DEVICES 
+//**********************************************************************************
+static void parse_fund_data(char *ldata, acct_id_p acct_id_temp)
+{
+   char *src = ldata ;
+   char dest[20+1];
+   char cusip[5+1] = "" ;
+   char desc[60+1] = "" ;
+   char end_value[20+1] = "" ;
+   
+   if (acct_id_temp == NULL) {
+      return ;
+   }
+   int lcount = 0 ;
+   bool dvalid = false ;
+   while (LOOP_FOREVER) {
+      switch (lcount) {
+      case 0:  //  cusip
+         src = strccpy(src, cusip, 6);
+         break ;
+      case 1:  //  description of fund
+         src = strccpy(src, desc, 60);
+         break ;
+      case 2:  //  quantity (skip)
+         src = strccpy(src, dest, 60);
+         break ;
+      case 3:  //  price (skip)
+         src = strccpy(src, dest, 60);
+         break ;
+      case 4:  //  beginning value (skip)
+         src = strccpy(src, dest, 60);
+         break ;
+      case 5:  //  ending value
+         src = strccpy(src, end_value, 20);
+         break ;
+      default:
+         break ;
+      }
+      if (src == NULL) {
+         dvalid = false ;
+         break ;
+      }
+      if (*src == 0) {
+         dvalid = false ;
+         break ;
+      }
+      lcount++ ;
+      if (lcount >= 6) {
+         dvalid = true ;
+         break ;
+      }
+   }
+   
+   //  now, process results
+   if (dvalid) {
+//06 2023: cusip: [FSCRX], desc: [FIDELITY SMALL CAP DISCOVERY FUND ], end_value: [63709.60]
+      printf("%02u %04u: ", acct_id_temp->month, acct_id_temp->year);
+      printf("cusip: [%s], ", cusip);
+      printf("desc: [%s], ", desc);
+      printf("end_value: [%s]\n", end_value);
+   }
+}  //lint !e818
 
 //**********************************************************************************
 // Account Type,Account,Beginning mkt Value,Change in Investment,Ending mkt Value,
@@ -148,11 +242,10 @@ static void parse_fund_data(char *ldata)
 // SPAXX,FIDELITY GOVERNMENT MONEY MARKET ,57.24000,1.00000,56.66,57.24,not applicable
 // Subtotal of Core Account,,,,,57.24,,,,,
 //**********************************************************************************
-static int process_text_file(char *fpath)
+static int process_text_file(char const * const fpath)
 {
-   uint lcount ;
    acct_id_p acct_id_temp = NULL ;
-   // printf("%s\n", fpath);
+   printf("\n%s\n", fpath);
    FILE *fptr = fopen(fpath, "rt");
    if (fptr == NULL) {
       printf("%3u: %s\n", (uint) errno, fpath);
@@ -160,12 +253,10 @@ static int process_text_file(char *fpath)
    }
    //  scan through all the lines and collect data
    char *ctemp ;
-   lcount = 0 ;
    uint pstate = 0 ;
    bool fvalid = true ;
    while(fgets(inpstr, sizeof(inpstr), fptr) != 0) {
       strip_newlines(inpstr);
-      lcount++ ;
       switch (pstate) {
       case 0:  //Account Type,Account,Beginning mkt Value,
          if (strncmp(inpstr, "Account Type", 12) != 0) {
@@ -233,7 +324,7 @@ static int process_text_file(char *fpath)
                break ;
             }
             printf("%s\n", inpstr);
-            parse_fund_data(inpstr);
+            parse_fund_data(inpstr, acct_id_temp);
             break ;
 
          case 5:  //  read to end of file
@@ -245,9 +336,8 @@ static int process_text_file(char *fpath)
          break ;
       }
    }  //  while reading lines from file
-   printf("%3u [%u] [%s]\n\n", lcount, (uint) fvalid, fpath);
-   
    fclose(fptr);
+   // printf("%3u [%u] [%s]\n\n", lcount, (uint) fvalid, fpath);
 
    return 0 ;
 }
@@ -255,7 +345,6 @@ static int process_text_file(char *fpath)
 //lint -esym(818, ftemp)   //  parameter could be declared as pointing to const
 int parse_fidelity_report(ffdata *ftemp)
 {
-   // int result = 
    process_text_file(ftemp->path_spec);   //lint !e534
    return 0;
 }
