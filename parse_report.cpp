@@ -25,14 +25,62 @@ typedef struct acct_id_s {
 struct acct_id_s *next ;
 char fund_name[MAX_FUND_LEN+1];
 char acct_num[MAX_ACCT_NUM_LEN+1];
+uint month ;
+uint year ;
 } acct_id_t, *acct_id_p ;
 
 acct_id_p acct_id_top = NULL ;
 acct_id_p acct_id_tail = NULL ;
 
 //**********************************************************************************
-static acct_id_p add_account(char *fund_name, char *account_num)
+static bool parse_month_year(acct_id_p acct_id_temp, char const * const fname)
 {
+   char dtstr[20];
+   char monstr[3];
+   
+   //  parse month/date from filename
+   char *stemp = strstr(fname, "Statement");
+   if (stemp == NULL) {
+      return false ;
+   }
+   stemp += 9 ;   //  point to date string
+   strcpy(dtstr, stemp);
+   
+   //  truncate file extension, leaving just m[m]ddyyyy
+   stemp = strchr(dtstr, '.');
+   if (stemp == NULL) {
+      return false ;
+   }
+   *stemp = 0 ;
+   
+   uint slen = strlen(dtstr);
+   switch (slen) {
+   case 7:
+      monstr[0] = dtstr[0];
+      monstr[1] = 0 ;
+      acct_id_temp->month = (uint) atoi(monstr);
+      acct_id_temp->year  = (uint) atoi(&dtstr[3]);
+      break ;
+      
+   case 8:
+      monstr[0] = dtstr[0];
+      monstr[1] = dtstr[1];
+      monstr[2] = 0 ;
+      acct_id_temp->month = (uint) atoi(monstr);
+      acct_id_temp->year  = (uint) atoi(&dtstr[3]);
+      break ;
+      
+   default:
+      return false ;
+   }
+   
+   return true ;
+}
+
+//**********************************************************************************
+static acct_id_p add_account(char *fund_name, char *account_num, char const * const fname)
+{
+   //  D:\SourceCode\Git\fidelity_calcs\reports\Fidelity 5706\Statement3312023.csv
    // printf("acct: %s, fund: %s\n", account_num, fund_name);
    acct_id_p acct_id_temp ;
 
@@ -46,11 +94,18 @@ static acct_id_p add_account(char *fund_name, char *account_num)
       }
    }
    
-   printf("adding %s [%s]\n", account_num, fund_name);
    acct_id_temp = new acct_id_t ;
+   ZeroMemory((char *) acct_id_temp, sizeof(acct_id_t));
    strcpy(acct_id_temp->fund_name, fund_name);
    strcpy(acct_id_temp->acct_num, account_num);
-   acct_id_temp->next = NULL ;
+   
+   parse_month_year(acct_id_temp, fname);
+   
+   printf("adding %s m%u y%u [%s]\n", 
+      acct_id_temp->acct_num,
+      acct_id_temp->month,
+      acct_id_temp->year,
+      acct_id_temp->fund_name);
    
    if (acct_id_top == NULL) {
       acct_id_top = acct_id_temp ;
@@ -60,6 +115,12 @@ static acct_id_p add_account(char *fund_name, char *account_num)
    }
    acct_id_tail = acct_id_temp ;
    return acct_id_temp ;
+}
+
+//**********************************************************************************
+static void parse_fund_data(char *ldata)
+{
+
 }
 
 //**********************************************************************************
@@ -132,7 +193,7 @@ static int process_text_file(char *fpath)
          }
          *ctemp = 0 ;
          //  okay, parse is sufficient...
-         acct_id_temp = add_account(fund_name, account_num);
+         acct_id_temp = add_account(fund_name, account_num, fpath);
          if (acct_id_temp == NULL) {
             fvalid = false ;
          }
@@ -172,6 +233,7 @@ static int process_text_file(char *fpath)
                break ;
             }
             printf("%s\n", inpstr);
+            parse_fund_data(inpstr);
             break ;
 
          case 5:  //  read to end of file
@@ -183,7 +245,7 @@ static int process_text_file(char *fpath)
          break ;
       }
    }  //  while reading lines from file
-   printf("%3u [%u] [%s]\n", lcount, (uint) fvalid, fpath);
+   printf("%3u [%u] [%s]\n\n", lcount, (uint) fvalid, fpath);
    
    fclose(fptr);
 
