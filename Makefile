@@ -6,7 +6,7 @@ USE_64BIT = NO
 ifeq ($(USE_64BIT),YES)
 TOOLS=d:\tdm64\bin
 else
-TOOLS=c:\mingw\bin
+TOOLS=d:\tdm32\bin
 endif
 
 ifeq ($(USE_DEBUG),YES)
@@ -20,23 +20,31 @@ LFLAGS = -s -O3
 endif
 CFLAGS += -Weffc++
 CFLAGS += -Wno-write-strings
+CFLAGS += -Wno-format-overflow
 ifeq ($(USE_64BIT),YES)
 CFLAGS += -DUSE_64BIT
 CxxFLAGS += -DUSE_64BIT
 endif
+CFLAGS += -DLEGACY_QUALIFY
 
-LIBS=-lshlwapi
+LiFLAGS += -Ider_libs
+CFLAGS += -Ider_libs
+IFLAGS += -Ider_libs
 
-CPPSRC=FidelityCalcs.cpp parse_report.cpp common.cpp qualify.cpp
+# This is required for *some* versions of makedepend
+IFLAGS += -DNOMAKEDEPEND
+
+CPPSRC=FidelityCalcs.cpp parse_report.cpp \
+der_libs/common_funcs.cpp \
+der_libs/qualify_orig.cpp
 
 OBJS = $(CSRC:.c=.o) $(CPPSRC:.cpp=.o)
 
+LIBS=-lshlwapi
+
 #**************************************************************************
 %.o: %.cpp
-	$(TOOLS)\g++ $(CFLAGS) $<
-
-%.o: %.cxx
-	$(TOOLS)\g++ $(CxxFLAGS) $<
+	$(TOOLS)\g++ $(CFLAGS) -c $< -o $@
 
 ifeq ($(USE_64BIT),NO)
 BIN = FidelityCalcs.exe
@@ -47,7 +55,7 @@ endif
 all: $(BIN)
 
 clean:
-	rm -f *.o *.exe *~ *.zip
+	rm -f $(OBJS) *.exe *~ *.zip
 
 dist:
 	rm -f FidelityCalcs.zip
@@ -60,14 +68,13 @@ lint:
 	cmd /C "c:\lint9\lint-nt +v -width(160,4) $(LiFLAGS) -ic:\lint9 mingw.lnt -os(_lint.tmp) lintdefs.cpp $(CPPSRC)"
 
 depend: 
-	makedepend $(CSRC) $(CPPSRC)
+	makedepend $(IFLAGS) $(CSRC) $(CPPSRC)
 
 $(BIN): $(OBJS)
 	$(TOOLS)\g++ $(OBJS) $(LFLAGS) -o $(BIN) $(LIBS) 
 
 # DO NOT DELETE
 
-FidelityCalcs.o: common.h FidelityCalcs.h qualify.h
-parse_report.o: common.h FidelityCalcs.h
-common.o: common.h
-qualify.o: qualify.h
+FidelityCalcs.o: der_libs/common.h FidelityCalcs.h der_libs/qualify.h
+parse_report.o: der_libs/common.h FidelityCalcs.h
+der_libs/qualify.o: der_libs/common.h der_libs/conio_min.h der_libs/qualify.h

@@ -7,7 +7,6 @@
 
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>  //  PATH_MAX
 
 #include "common.h"
 #include "FidelityCalcs.h"
@@ -30,6 +29,10 @@ bool show_all = true ;
 //lint -esym(818, filespec, argv)  //could be declared as pointing to const
 //lint -e10  Expecting '}'
 
+//  name of drive+path without filenames
+static char base_path[MAX_PATH_LEN] ;
+static unsigned base_len ;  //  length of base_path
+
 //************************************************************
 ffdata *ftop  = NULL;
 ffdata *ftail = NULL;
@@ -41,7 +44,7 @@ static char const * const base_paths[] = {
 "reports\\Fidelity 5706",
 NULL };
 
-char file_spec[PATH_MAX+1] = "" ;
+char file_spec[MAX_PATH_LEN+1] = "" ;
 
 //**********************************************************************************
 int read_files(char *filespec, uint sub_path_idx)
@@ -162,8 +165,8 @@ int main(int argc, char **argv)
    int idx, result ;
    for (idx=1; idx<argc; idx++) {
       char *p = argv[idx] ;
-      strncpy(file_spec, p, PATH_MAX);
-      file_spec[PATH_MAX] = 0 ;
+      strncpy(file_spec, p, MAX_PATH_LEN);
+      file_spec[MAX_PATH_LEN] = 0 ;
    }
 
    if (file_spec[0] == 0) {

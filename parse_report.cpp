@@ -11,7 +11,6 @@
 
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>  //  PATH_MAX
 
 #include "common.h"
 #include "FidelityCalcs.h"
@@ -52,6 +51,28 @@ typedef struct acct_id_s {
 
 acct_id_p acct_id_top = NULL ;
 acct_id_p acct_id_tail = NULL ;
+
+//**********************************************************************************
+//  copy chars from src to dest until comma or 0 are encountered
+//**********************************************************************************
+static char *strccpy(char *src, char *dest, unsigned max_len)
+{
+   if (src == NULL  ||  dest == NULL) {
+      return NULL ;
+   }
+   unsigned slen = 0 ;
+   while (LOOP_FOREVER) {
+      if (*src == ','  ||  *src == 0  ||  slen >= max_len) {
+         *dest = 0 ;
+         if (*src == ',') {
+            src++ ;  //  skip terminating character
+         }
+         
+         return (slen >= max_len) ? NULL : src ;
+      }
+      *dest++ = *src++ ;
+   }
+}
 
 //**********************************************************************************
 static void parse_month_year(acct_id_p acct_id_temp, char const * const fname)
