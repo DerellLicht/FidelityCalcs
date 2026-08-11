@@ -21,10 +21,6 @@ endif
 CFLAGS += -Weffc++
 CFLAGS += -Wno-write-strings
 CFLAGS += -Wno-format-overflow
-ifeq ($(USE_64BIT),YES)
-CFLAGS += -DUSE_64BIT
-CxxFLAGS += -DUSE_64BIT
-endif
 CFLAGS += -DLEGACY_QUALIFY
 
 LiFLAGS += -Ider_libs
